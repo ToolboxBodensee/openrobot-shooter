@@ -111,22 +111,22 @@ void loop() {
       Serial.println("Use wasd or FBRL to drive");
       Serial.println("Use qe to debug servo movement");
       Serial.println("Use b or v to print battery voltage");
-    } else if ((cmd == 'F') || (cmd == 'w')) {
+    } else if ((cmd == 'f') || (cmd == 'w')) {
       // drive forward for a bit
       set_motors(DRIVE_SPEED, DRIVE_SPEED);
       delay(DRIVE_DELAY);
       set_motors(0, 0);
-    } else if ((cmd == 'B') || (cmd == 's')) {
+    } else if ((cmd == 'b') || (cmd == 's')) {
       // drive backward for a bit
       set_motors(-DRIVE_SPEED, -DRIVE_SPEED);
       delay(DRIVE_DELAY);
       set_motors(0, 0);
-    } else if ((cmd == 'R') || (cmd == 'd')) {
+    } else if ((cmd == 'r') || (cmd == 'd')) {
       // turn a step right
       set_motors(-TURN_SPEED, TURN_SPEED);
       delay(TURN_DELAY);
       set_motors(0, 0);
-    } else if ((cmd == 'L') || (cmd == 'a')) {
+    } else if ((cmd == 'l') || (cmd == 'a')) {
       // turn a step left
       set_motors(TURN_SPEED, -TURN_SPEED);
       delay(TURN_DELAY);
