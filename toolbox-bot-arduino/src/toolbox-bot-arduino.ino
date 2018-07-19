@@ -46,6 +46,8 @@ int pin_analog_bat = 1;
 #define SERVO_SPEED 20
 #define SERVO_DELAY 400
 
+#define SERIAL_BAUDRATE 9600
+
 void setup() {
   pinMode(pin_speed_left, OUTPUT);
   pinMode(pin_speed_right, OUTPUT);
@@ -62,7 +64,7 @@ void setup() {
   digitalWrite(pin_dir1_right, LOW);
   digitalWrite(pin_dir2_right, LOW);
 
-  Serial.begin(115200);
+  Serial.begin(SERIAL_BAUDRATE);
   Serial.println(SKETCH_ID " ready!");
 }
 
