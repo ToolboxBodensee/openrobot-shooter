@@ -32,7 +32,7 @@ Servo servo;
  * 
  * Don't use too-high resistances https://electronics.stackexchange.com/questions/141595/arduino-analogin-minimum-current
  */
-int pin_analog_bat = 1;
+int pin_analog_bat = A0;
 #define ADC_BAT_R1 12000
 #define ADC_BAT_R2 4300
 
@@ -48,13 +48,122 @@ int pin_analog_bat = 1;
 
 #define SERIAL_BAUDRATE 9600
 
+#define RGB_LED_PIN 12
+#define LED_COUNT 6
+
+#include <NeoPixelBus.h>
+NeoPixelBus<NeoGrbFeature, Neo800KbpsMethod> strip(LED_COUNT, RGB_LED_PIN);
+
+#define STROBE_TIME_MOD 50
+#define FADE_TIME_MOD 4000
+#define FADE_TIME_PAUSE 2000
+#define FADE_TIME_DUR (FADE_TIME_MOD - FADE_TIME_PAUSE)
+
+int color_saturation = 255;
+RgbColor red   (color_saturation,                0,                0);
+RgbColor green (               0, color_saturation,                0);
+RgbColor blue  (               0,                0, color_saturation);
+RgbColor white (color_saturation, color_saturation, color_saturation);
+RgbColor black (               0,                0,                0);
+
+enum animations {
+  single_off,
+  single_red,
+  single_green,
+  single_blue,
+  single_white,
+  strobe_white_off,
+  strobe_red_green,
+  fade_rgb,
+};
+
+enum animations current_anim = fade_rgb;
+int anim_state = 0;
+RgbColor last_fade_color = black, fade_color, last_shown_color;
+uint64_t fade_time = 0;
+
+void set_pixels(RgbColor color, bool update_other = false) {
+  if (update_other) {
+    last_shown_color = color;
+  } else {
+    last_shown_color = color;
+    last_fade_color = color;
+  }
+  for (int i = 0; i < LED_COUNT; i++) {
+    strip.SetPixelColor(i, color);
+  }
+  strip.Show();
+}
+
+void anim_strobe() {
+  RgbColor *col1, *col2;
+  if (current_anim == strobe_white_off) {
+    col1 = &white;
+    col2 = &black;
+  } else if (current_anim == strobe_red_green) {
+    col1 = &red;
+    col2 = &green;
+  }
+  
+  if ((millis() % STROBE_TIME_MOD) == 0) {
+    if (!anim_state) {
+      anim_state = 1;
+      set_pixels(*col1);
+    } else {
+      anim_state = 0;
+      set_pixels(*col2);
+    }
+    delay(1);
+  }
+}
+
+void anim_fade() {
+  if ((millis() % FADE_TIME_MOD) == 0) {
+    // define new color target
+    fade_color = RgbColor(random(256), random(256), random(256));
+    fade_time = millis() + FADE_TIME_DUR;
+  }
+
+  if (((millis() + 1) % FADE_TIME_MOD) == 0) {
+    last_fade_color = last_shown_color;
+  }
+  
+  if ((millis() < fade_time) && ((millis() % 10) == 0)) {
+    float progress = ((float)(fade_time - millis())) / (float)FADE_TIME_DUR;
+    progress = 1.0f - progress;
+    RgbColor color = RgbColor::LinearBlend(last_fade_color, fade_color, progress);
+    set_pixels(color, true);
+    delay(1);
+  }
+}
+
+void show_leds() {
+  if (current_anim == single_off) {
+    set_pixels(black);
+  } else if (current_anim == single_red) {
+    set_pixels(red);
+  } else if (current_anim == single_green) {
+    set_pixels(green);
+  } else if (current_anim == single_blue) {
+    set_pixels(blue);
+  } else if (current_anim == single_white) {
+    set_pixels(white);
+  } else if ((current_anim >= strobe_white_off) && (current_anim <= strobe_red_green)) {
+    anim_strobe();
+  } else if (current_anim == fade_rgb) {
+    anim_fade();
+  }
+}
+
 void setup() {
+  pinMode(pin_analog_bat, INPUT);
   pinMode(pin_speed_left, OUTPUT);
   pinMode(pin_speed_right, OUTPUT);
   pinMode(pin_dir1_left, OUTPUT);
   pinMode(pin_dir2_left, OUTPUT);
   pinMode(pin_dir1_right, OUTPUT);
   pinMode(pin_dir2_right, OUTPUT);
+  pinMode(RGB_LED_PIN, OUTPUT);
 
   // apply brakes
   digitalWrite(pin_speed_left, LOW);
@@ -66,12 +175,29 @@ void setup() {
 
   Serial.begin(SERIAL_BAUDRATE);
   Serial.println(SKETCH_ID " ready!");
+
+  strip.Begin();
+  strip.Show();
 }
 
 int batteryVoltage() {
-  int val = analogRead(pin_analog_bat);
+  analogRead(pin_analog_bat);
+  delay(500);
+  uint32_t val = analogRead(pin_analog_bat);
+
+  Serial.print("Got raw: ");
+  Serial.println(val);
+  
   uint32_t vadc = val * 500 / 1024; /* scale adc input to 0 - 500 as Volt^-2 */
+
+  Serial.print("Got scaled: ");
+  Serial.println(vadc);
+  
   uint32_t vbat = vadc * (ADC_BAT_R1 + ADC_BAT_R2) / ADC_BAT_R2;
+
+  Serial.print("Got bat: ");
+  Serial.println(vbat);
+  
   return (int)vbat; /* 0 to eg. 1642 for 16.42V */
 }
 
@@ -146,7 +272,7 @@ void loop() {
       servo.write(180 - SERVO_SPEED);
       delay(SERVO_DELAY);
       servo.detach();
-    } else if ((cmd == 'b') || (cmd == 'v')) {
+    } else if (cmd == 'v') {
       // print battery voltage
       Serial.println(voltageToString(batteryVoltage()));
     }
@@ -154,5 +280,7 @@ void loop() {
     // "flush" rest of serial input buffer to avoid endless key-repeat loops
     while (Serial.available() > 0) Serial.read();
   }
+
+  show_leds();
 }
 
