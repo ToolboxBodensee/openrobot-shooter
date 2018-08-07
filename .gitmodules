@@ -1,0 +1,3 @@
+[submodule "3d-prints/pd-gears"]
+	path = 3d-prints/pd-gears
+	url = https://github.com/sadr0b0t/pd-gears.git
