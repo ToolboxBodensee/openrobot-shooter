@@ -1,5 +1,7 @@
 # Toolbox Telepresence Robot
 
+**Entwicklung nur auf [GitLab](https://gitlab.com/ToolboxBodensee/letsrobot-dev/openrobot-shooter). Auf GitHub befindet sich lediglich ein Mirror**
+
 Everything related to the [Toolbox Bodensee](https://toolbox-bodensee.de) implementation of a [LetsRobot.tv](https://letsrobot.tv) "telepresence" robot.
 
 ## Quick Start
